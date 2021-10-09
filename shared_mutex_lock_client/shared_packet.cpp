@@ -1,8 +1,11 @@
 #include "shared_packet.h"
+#include <iostream>
+
+using namespace std;
 
 shared_packet::shared_packet()
 {
-        key = ftok("shmfile",DEFAULT_KEY_ID);
+        key = ftok("/bin",DEFAULT_KEY_ID);
 }
 
 shared_packet::~shared_packet(){
@@ -12,12 +15,15 @@ shared_packet::~shared_packet(){
 /**
  * @brief shared_packet::init
  */
-void shared_packet::init(){
+bool shared_packet::init(){
     // shmget returns an identifier in shmid
     shared_memory_packet temp;
     shmid = shmget(key, sizeof(temp),0666|IPC_CREAT);
     // shmat to attach to shared memory
     data = (shared_memory_packet*) shmat(shmid,(void*)0,0);
+    cout << shmid << " " << key <<endl;
+    if (shmid > 0 && key > 0) return true; // no error
+    else return false; // error
 }
 
 /**

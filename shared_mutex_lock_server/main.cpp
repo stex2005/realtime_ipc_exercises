@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string.h> // For strerror
 
 #include <fcntl.h>
 #include "semaphore.h"
@@ -7,34 +8,83 @@
 
 using namespace std;
 
-int main()
-{
-    cout << "Hello World! Shared mutex server" << endl;
-    sem_t *mutex = sem_open("locker", O_CREAT,0600,1);
+shared_packet shm;
+pthread_mutexattr_t mutexattr;
+pthread_condattr_t condattr;
 
-    shared_packet shm;
-    shm.init();
+int counter = 0;
 
-    int counter = 0;
+void* server_routine(void* arg){
 
-//    sem_close(mutex);
-    sem_post(mutex);
-
-    while(1){
+    while(counter<10){
 
         // Lock semaphores
-        sem_wait(mutex);
+        pthread_mutex_lock(&shm.data->lock);
 
-        counter += 1;
-        shm.data->counter += 1;
+        // If client has not acted yet
+        if(!shm.data->flag)
+            // Wait until client is ready
+            pthread_cond_wait(&shm.data->client_ready,&shm.data->lock);
+        // Server acts
+        shm.data->flag = false;
+        cout << "\n Server action: " << shm.data->flag << " Counter: " << counter <<endl;
+        // Remove block
+        pthread_cond_signal(&shm.data->server_ready);
 
-        printf("\n Job +1: %d\n", shm.data->counter);
+        pthread_mutex_unlock(&shm.data->lock);
 
-        for (unsigned long i = 0; i <   (0x000FFFFF); i++) ;
-
-        sem_post(mutex);
-
+        // Do stuff
+        for (unsigned long i = 0; i <   (0x0FFFFFFF); i++) ;
+        counter++;
     }
-    sem_close(mutex);
+}
+
+int main()
+{
+    cout << "Hello World! Shared mutex over shared memory server" << endl;
+
+    if (shm.init())
+    {
+        int key = shm.get_shared_memory_key();
+        printf("shared memory initialized with key 0x%x", key);    // start the shared memory communication
+    }
+    else
+    {
+        cout << "shared memory initialization has been failed";
+        shm.detach_shared_memory();
+    }
+
+    // Mutex initialization
+    pthread_mutexattr_init(&mutexattr);
+    pthread_mutexattr_setpshared(&mutexattr, PTHREAD_PROCESS_SHARED);
+    pthread_mutex_init(&shm.data->lock, &mutexattr);
+    pthread_mutexattr_destroy(&mutexattr);
+
+    // Condition variables initialization
+    pthread_condattr_init(&condattr);
+    pthread_condattr_setpshared(&condattr,PTHREAD_PROCESS_SHARED);
+    pthread_cond_init(&shm.data->server_ready, &condattr);
+    pthread_cond_init(&shm.data->client_ready, &condattr);
+    pthread_condattr_destroy(&condattr);
+
+    // Create server thread
+    pthread_t tid;
+    int error = 0;
+    error = pthread_create(&(tid),
+                           NULL,
+                           &server_routine, NULL);
+
+    printf("\n Created thread with id: %lu", tid);
+    if (error != 0)
+        printf("\nThread can't be created :[%s]",
+               strerror(error));
+
+    pthread_join(tid,NULL);
+
+    printf("\n Shutting down.. \n");
+    shm.detach_shared_memory();
+    pthread_mutex_destroy(&shm.data->lock);
+    pthread_cond_destroy(&shm.data->server_ready);
+    pthread_cond_destroy(&shm.data->client_ready);
     return 0;
 }
