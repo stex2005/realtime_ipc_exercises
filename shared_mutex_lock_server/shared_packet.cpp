@@ -22,7 +22,6 @@ bool shared_packet::init(){
     // shmat to attach to shared memory
     data = (shared_memory_packet*) shmat(shmid,(void*)0,0);
     cout << shmid << " " << key <<endl;
-
     if (shmid > 0 && key > 0) return true; // no error
     else return false; // error
 }

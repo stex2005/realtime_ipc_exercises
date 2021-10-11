@@ -6,6 +6,10 @@
 
 #include "shared_packet.h"
 
+#define ITERATIONS 0xFFF
+#define LOOPS 0x0FFFFFFF
+
+
 using namespace std;
 
 shared_packet shm;
@@ -13,28 +17,31 @@ pthread_mutexattr_t mutexattr;
 pthread_condattr_t condattr;
 
 int counter = 0;
+int counter_wait = 0;
 
 void* server_routine(void* arg){
-
-    while(counter<10){
+    cout << "Server routine started." <<endl;
+    while(counter<ITERATIONS){
 
         // Lock semaphores
         pthread_mutex_lock(&shm.data->lock);
-
+        cout << "\n Server adds: " << shm.data->counter << " Counter: " << counter <<endl;
         // If client has not acted yet
-        if(!shm.data->flag)
+        if(shm.data->counter == 1){
             // Wait until client is ready
-            pthread_cond_wait(&shm.data->client_ready,&shm.data->lock);
+            cout << "Wait for client" << endl;
+//            pthread_cond_wait(&shm.data->client_ready,&shm.data->lock);
+            counter_wait++;
+        }
         // Server acts
-        shm.data->flag = false;
-        cout << "\n Server action: " << shm.data->flag << " Counter: " << counter <<endl;
+        shm.data->counter += 1;
         // Remove block
-        pthread_cond_signal(&shm.data->server_ready);
+//        pthread_cond_signal(&shm.data->server_ready);
 
         pthread_mutex_unlock(&shm.data->lock);
 
         // Do stuff
-        for (unsigned long i = 0; i <   (0x0FFFFFFF); i++) ;
+        for (unsigned long i = 0; i <   (LOOPS); i++) ;
         counter++;
     }
 }
@@ -60,6 +67,7 @@ int main()
     pthread_mutex_init(&shm.data->lock, &mutexattr);
     pthread_mutexattr_destroy(&mutexattr);
 
+
     // Condition variables initialization
     pthread_condattr_init(&condattr);
     pthread_condattr_setpshared(&condattr,PTHREAD_PROCESS_SHARED);
@@ -74,17 +82,20 @@ int main()
                            NULL,
                            &server_routine, NULL);
 
-    printf("\n Created thread with id: %lu", tid);
+    printf("\n Created thread with id: %lu \n", tid);
     if (error != 0)
         printf("\nThread can't be created :[%s]",
                strerror(error));
 
     pthread_join(tid,NULL);
 
+    cout << "Counter for locking actions: " << counter_wait << endl;
     printf("\n Shutting down.. \n");
-    shm.detach_shared_memory();
     pthread_mutex_destroy(&shm.data->lock);
     pthread_cond_destroy(&shm.data->server_ready);
     pthread_cond_destroy(&shm.data->client_ready);
+
+    shm.detach_shared_memory();
+
     return 0;
 }
