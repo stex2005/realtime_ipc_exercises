@@ -20,6 +20,8 @@
 #include <linux/unistd.h>
 #include <fcntl.h>
 
+#include "time_spec_operation.h"
+
 #ifdef _POSIX_PRIORITY_SCHEDULING
 #define POSIX "POSIX 1003.1b\n";
 #endif
@@ -31,6 +33,8 @@
 
 #define DEFAULT_APP_DURATION_COUNTS 10000
 #define DEFAULT_LOOP_TIME_NS        1000000L
+#define ALLOWED_LOOPTIME_OVERFLOW_NS 100000L
+
 
 using namespace std;
 
@@ -96,29 +100,57 @@ void *thread(void * arg){
     getinfo();
 
     // Declare timespec variables
-    struct timespec t_start, t_now, t_next, t_period, t_prev,t_result;
+    struct timespec t_start, t_now, t_next, t_result,t_overflow;
+
+    // Lock memory to disable paging
+//    mlockall(MCL_CURRENT|MCL_FUTURE);
+
+    // Disable power management
+//    set_latency_target();
 
     // Get start and current time
+     clock_gettime(CLOCK_MONOTONIC, &t_now);
 
     // Initialize next time to current time
-
+//    t_next = t_now;
+    t_start = t_now;
 
     // While loop
     while(loop_count<DEFAULT_APP_DURATION_COUNTS) //ms
     {
         // Compute next cycle deadline (t_next)
+//        timespec_add_nsec(&t_next,&t_next,DEFAULT_LOOP_TIME_NS);
 
         // Do stuff
         for(int i=0;i<1000;i++);
+
+        // Debug cycle at 1 Hz
+        if(loop_count%1000==0){
+
+            // Compute time since start
+            timespec_sub(&t_result,&t_now,&t_start);
+            cout << "Clock from start: " << (double)(timespec_to_nsec(&t_result)/1e9) << " sec" << endl;;
+
+            // Run my cyclic task
+            // Do work here
+        }
+
         loop_count++;
 
         // Sleep until the next cycle deadline (until t_next)
+//        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t_next,nullptr);
 
         // Get time after sleep (t_now)
+        clock_gettime ( CLOCK_MONOTONIC, &t_now);
 
         // Compute overflow (t_overflow = t_now - t_next)
+//        timespec_sub(&t_overflow,&t_now,&t_next);
 
         // If overflow > threshold, raise exception
+//        if(t_overflow.tv_nsec > ALLOWED_LOOPTIME_OVERFLOW_NS)
+//        {
+//            cout << "Thread Overflow: " << (double)t_overflow.tv_nsec/1000 << " usec" << endl;
+//        }
 
     }
 
@@ -168,22 +200,18 @@ int main()
     /************************/
 
     // Set explicit attributes for thread creation
-
     pthread_attr_init( &attr);
-    pthread_attr_setinheritsched( &attr, PTHREAD_EXPLICIT_SCHED);
+//    pthread_attr_setinheritsched( &attr, PTHREAD_EXPLICIT_SCHED);
 
 
     // Set scheduler policy
-
-    policy = SCHED_RR;
-    pthread_attr_setschedpolicy( &attr, policy);
+//    policy = SCHED_RR;
+//    pthread_attr_setschedpolicy( &attr, policy);
 
 
     // Set scheduler priority
-
-
-    prio.sched_priority = 30;// -(priority+1) priority range should be btw 1 and 50
-    pthread_attr_setschedparam(&attr,&prio);
+//    prio.sched_priority = 30;// -(priority+1) priority range should be btw 1 and 50
+//    pthread_attr_setschedparam(&attr,&prio);
 
 
     // Create thread
