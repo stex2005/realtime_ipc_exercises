@@ -1,0 +1,7 @@
+shared memory:
+
+ipcs
+
+
+
+
