@@ -38,7 +38,7 @@
 
 #define DEFAULT_LOOP_TIME_NS 1000000L
 #define DEFAULT_APP_DURATION_COUNTS 10000
-#define ALLOWED_LOOPTIME_OVERFLOW_NS 200000L
+#define ALLOWED_LOOPTIME_OVERFLOW_NS 100000L
 
 using namespace std;
 
@@ -116,8 +116,8 @@ void *nrt(void * arg){
     t_period.tv_nsec = DEFAULT_LOOP_TIME_NS;
 
     // Get starting time
-    clock_gettime ( CLOCK_REALTIME, &t_now);
-    clock_gettime(CLOCK_REALTIME, &t_start);
+    clock_gettime (CLOCK_MONOTONIC, &t_now);
+    clock_gettime(CLOCK_MONOTONIC, &t_start);
     t_next = t_now;
 
     while(loop_count<DEFAULT_APP_DURATION_COUNTS)

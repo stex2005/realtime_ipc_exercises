@@ -209,7 +209,7 @@ int main()
     // Processes scheduled with SCHED_OTHER have static priority 0;
     // Processes scheduled under SCHED_FIFO or SCHED_RR can have a static priority in the range 1 to 99.
 
-    prio.sched_priority = 99 ; // priority range should be btw 0 and 99
+    prio.sched_priority = 98 ; // priority range should be btw 1 and 99
     pthread_attr_setschedparam(&attr,&prio);
 
     if ( pthread_create(&rt_loop, &attr, rt, nullptr ) ){
