@@ -201,17 +201,17 @@ int main()
 
     // Set explicit attributes for thread creation
     pthread_attr_init( &attr);
-//    pthread_attr_setinheritsched( &attr, PTHREAD_EXPLICIT_SCHED);
+    pthread_attr_setinheritsched( &attr, PTHREAD_EXPLICIT_SCHED);
 
 
     // Set scheduler policy
-//    policy = SCHED_RR;
-//    pthread_attr_setschedpolicy( &attr, policy);
+    policy = SCHED_RR;
+    pthread_attr_setschedpolicy( &attr, policy);
 
 
     // Set scheduler priority
-//    prio.sched_priority = 30;// -(priority+1) priority range should be btw 1 and 50
-//    pthread_attr_setschedparam(&attr,&prio);
+    prio.sched_priority = 30;// -(priority+1) priority range should be btw 1 and 50
+    pthread_attr_setschedparam(&attr,&prio);
 
 
     // Create thread
